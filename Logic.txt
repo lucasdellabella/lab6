@@ -1,0 +1,17 @@
+particle filter, create mapping
+if cubeA: RRT to cube A, RRT to drone, place down
+if cubeB: RRT to cube B, RRT to drone, place down
+if cubeC: RRT to cube C, RRT to drone, place down
+if cubeD: RRT to cube C, RRT to drone, place down
+go to cubes in order
+
+Step 0:
+Particle filter, create map of {marker: marker_name}
+
+Step 1:
+Particle filter
+Pick a corner that has a cube
+Drive to cube
+Pick up
+Drive to cube destination
+Drop off
