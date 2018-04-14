@@ -14,12 +14,14 @@ import datetime
 import time
 import numpy as np
 from sklearn import metrics
+from sklearn.externals import joblib
 from classifier import ImageClassifier
 from collections import deque, defaultdict
 import marker_detection
 import skimage
 import pdb
 import pickle
+import os
 
 def run(sdk_conn):
 
@@ -30,8 +32,10 @@ def run(sdk_conn):
 
     robot.set_head_angle(cozmo.util.degrees(0)).wait_for_completed()
     robot.set_lift_height(height=0, duration=0.5).wait_for_completed()
-
-    classifier = trainModel(robot)
+    if os.path.exists('classifier.pkl'):
+        classifier = joblib.load('classifier.pkl')
+    else:
+        classifier = trainModel(robot)
     detectImages(robot, classifier)
 
 def find_majority(d):
@@ -94,6 +98,7 @@ def trainModel(robot):
         ||
         ||
                 ''')
+    joblib.dump(classifier, 'classifier.pkl')
     return classifier
 
 def detectImages(robot, classifier):

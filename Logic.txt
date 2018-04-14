@@ -5,10 +5,15 @@ if cubeC: RRT to cube C, RRT to drone, place down
 if cubeD: RRT to cube C, RRT to drone, place down
 go to cubes in order
 
-Step 0:
-Particle filter, create map of {marker: marker_name}
-
 Step 1:
+  Get recognition code from Lab2 working
+  DONE: save model
+
+Step 2:
+  2a. run particle filter, see if it works at all
+  2b. Create map of {marker: marker_name}
+
+Step 3:
 Particle filter
 Pick a corner that has a cube
 Drive to cube
