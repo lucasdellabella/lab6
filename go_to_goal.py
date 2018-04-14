@@ -64,6 +64,7 @@ def compute_odometry(curr_pose, cvt_inch=True):
     '''
     Compute the odometry given the current pose of the robot (use robot.pose)
 
+
     Input:
         - curr_pose: a cozmo.robot.Pose representing the robot's current location
         - cvt_inch: converts the odometry into grid units
@@ -127,7 +128,7 @@ async def marker_processing(robot, camera_settings, show_diagnostic_image=False)
         annotator.annotate_markers(diag_image, markers, scale=2)
         annotated_image = diag_image
 
-    return marker_list, annotated_image
+    return marker_list, annotated_image, image
 
 async def localize(robot: cozmo.robot.Robot):
     global flag_odom_init, last_pose
@@ -137,10 +138,9 @@ async def localize(robot: cozmo.robot.Robot):
     robot.camera.image_stream_enabled = True
     robot.camera.color_image_enabled = False
     robot.camera.enable_auto_exposure()
+
     await robot.set_head_angle(cozmo.util.degrees(0)).wait_for_completed()
-    classifier = imageML.load_classifier()
-    marker_locations = {}
-    marker_ids = grid.markers
+    await robot.set_lift_height(height=0, duration=0.5).wait_for_completed()
 
     # Obtain the camera intrinsics matrix
     fx, fy = robot.camera.config.focal_length.x_y
@@ -151,11 +151,14 @@ async def localize(robot: cozmo.robot.Robot):
         [ 0,  0,  1]
     ], dtype=np.float)
 
-    while(True):
+    classifier = imageML.load_classifier()
+    marker_locations = {}
+
+    while(len(marker_locations) < 6):
         odom = compute_odometry(robot.pose)
         last_pose = robot.pose
     #   • Obtain list of currently seen markers and their poses
-        markers, camera_image = await marker_processing(robot, camera_settings, show_diagnostic_image=True)
+        markers, camera_image, raw_image = await marker_processing(robot, camera_settings, show_diagnostic_image=True)
         print(markers)
         #predicted_image = imageML.detectImage(robot, classifier)
         #marker_locations[predicted_image] = <actual location of marker>
@@ -174,11 +177,31 @@ async def localize(robot: cozmo.robot.Robot):
         gui.show_mean(est_x, est_y, est_h, confident)
         gui.updated.set()
 
-        if not confident:
-            action = await robot.drive_wheels(30, -8, duration=None)
-        else:
-            robot.stop_all_motors()
-            return (est_x, est_y, est_h)
+        action = await robot.drive_wheels(30, -8, duration=None)
+
+        if confident:
+            # DO marker detection
+            for rx, ry, rh in markers:
+                # get marker global COORDS
+                axis_aligned_x = math.cos(rh) * rx + -1 * math.sin(rh) * ry
+                axis_aligned_y = math.sin(rh) * rx + math.cos(rh) * ry
+
+                est_marker_x = axis_aligned_x + est_x
+                est_marker_y = axis_aligned_y + est_y
+                # compare to grid.markers
+                min_dist = float('inf')
+                best_marker_pos = None
+                for abs_marker_x, abs_marker_y, abs_marker_h in grid.markers:
+                    curr_dist = grid_distance(est_marker_x, est_marker_y, abs_marker_x, abs_marker_y)
+                    if min_dist > curr_dist:
+                        min_dist = curr_dist
+                        best_marker_pos = (abs_marker_x, abs_marker_y, abs_marker_h)
+                marker_name = await imageML.detectImage(robot, classifier, raw_image)
+                if marker_name not in {'none', 'None'}:
+                    marker_locations[marker_name] = best_marker_pos
+                    print(marker_locations)
+
+    return marker_locations
 
 async def run(robot: cozmo.robot.Robot):
 
@@ -189,7 +212,9 @@ async def run(robot: cozmo.robot.Robot):
     robot.camera.image_stream_enabled = True
     robot.camera.color_image_enabled = False
     robot.camera.enable_auto_exposure()
+
     await robot.set_head_angle(cozmo.util.degrees(0)).wait_for_completed()
+
     classifier = imageML.load_classifier()
     marker_locations = {}
     marker_ids = grid.markers
@@ -282,8 +307,8 @@ async def run(robot: cozmo.robot.Robot):
                 break
 
 async def run(robot: cozmo.robot.Robot):
-    position = await localize(robot)
-    print('FINAL: ' + str(position))
+    marker_locations = await localize(robot)
+    print('FINAL: ' + str(marker_locations))
 
 class CozmoThread(threading.Thread):
 

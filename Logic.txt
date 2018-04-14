@@ -14,12 +14,17 @@ Step 2:
   2b. Create map of {marker: marker_name}
 
     i. get unique IDs of each marker from grid.markers
-    ii. localize robot with particle filtering
+    ii. TODO: checkup. localize robot with particle filtering
     iii. continue driving in circle, detect markers and decide which of the markers the detected marker is
           -- Maybe take the global position of each of the markers, and find the nearest neighbor to the observed_marker
     iv. create mapping of marker_name: absolute_grid_location to use as 'goal'
     v. if len(marker_locations) == 6: move to planning section
        else: goto step iii.
+
+    PROBLEMS:
+      1. detectImage() predicting things to be none. If we see a marker, the output definitely shouldn't be none
+        a. Stop movement when doing detectImage()
+      2. General angle is incorrect after particle filtering
 
 
         once we've created this mapping we need to RRT

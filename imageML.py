@@ -24,7 +24,6 @@ import pickle
 import os
 
 def run(sdk_conn):
-
     robot = sdk_conn.wait_for_robot()
     robot.camera.image_stream_enabled = True
     robot.camera.color_image_enabled = False
@@ -104,11 +103,10 @@ def trainModel(robot):
     joblib.dump(classifier, 'classifier.pkl')
     return classifier
 
-def detectImage(robot, classifier):
+async def detectImage(robot: cozmo.robot.Robot, classifier, raw_image):
     d = deque()
     # Start main program
-    raw_image = np.array(robot.world.wait_for(cozmo.world.EvtNewCameraImage).image.raw_image)
-    raw_image = skimage.color.rgb2gray(raw_image)
+    latest_image = robot.world.latest_image
     marker = marker_detection.detect_marker(raw_image)
 
     # Check if a marker was detected
@@ -126,12 +124,13 @@ def detectImage(robot, classifier):
             else:
                 d.append('none')
             # Start main program
-            raw_image = np.array(robot.world.wait_for(cozmo.world.EvtNewCameraImage).image.raw_image)
+            image_event = await robot.world.wait_for(cozmo.world.EvtNewCameraImage)
+            raw_image = np.array(image_event.image.raw_image)
             raw_image = skimage.color.rgb2gray(raw_image)
             marker = marker_detection.detect_marker(raw_image)
         return find_majority(d)
 
-def detectImages(robot, classifier):
+def detectImages(robot: cozmo.robot.Robot, classifier):
     d = deque()
     # Start main program
     while(True):
