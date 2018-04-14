@@ -180,6 +180,7 @@ async def localize(robot: cozmo.robot.Robot):
         action = await robot.drive_wheels(30, -8, duration=None)
 
         if confident:
+            robot.stop_all_motors()
             # DO marker detection
             for rx, ry, rh in markers:
                 # get marker global COORDS
@@ -197,10 +198,11 @@ async def localize(robot: cozmo.robot.Robot):
                         min_dist = curr_dist
                         best_marker_pos = (abs_marker_x, abs_marker_y, abs_marker_h)
                 marker_name = await imageML.detectImage(robot, classifier, raw_image)
-                if marker_name not in {'none', 'None'}:
-                    marker_locations[marker_name] = best_marker_pos
-                    print(marker_locations)
+                #if marker_name not in {'none', 'None'}:
+                marker_locations[marker_name] = best_marker_pos
+                print(marker_locations)
 
+            action = await robot.drive_wheels(30, -8, duration=None)
     return marker_locations
 
 async def run(robot: cozmo.robot.Robot):

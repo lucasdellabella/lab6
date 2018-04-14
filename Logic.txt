@@ -25,6 +25,14 @@ Step 2:
       1. detectImage() predicting things to be none. If we see a marker, the output definitely shouldn't be none
         a. Stop movement when doing detectImage()
       2. General angle is incorrect after particle filtering
+      3. Probably need to move around more to discover all images
+
+    POTENTIAL BUGS:
+      1. Only runs marker correspondence section if (confidence == True).
+         -> do we want to stop particle filtering after we have found robot position,
+            and then use the found position
+
+
 
 
         once we've created this mapping we need to RRT
