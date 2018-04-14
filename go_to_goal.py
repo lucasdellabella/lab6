@@ -162,10 +162,6 @@ async def localize(robot: cozmo.robot.Robot):
         print(markers)
         #predicted_image = imageML.detectImage(robot, classifier)
         #marker_locations[predicted_image] = <actual location of marker>
-    #   • Determine the robot’s actions based on the current state of the localization system. For
-    #     example, you may want the robot to actively look around if the localization has not
-    #     converged (i.e. global localization problem), and drive to the goal if localization has
-    #     converged (i.e. position tracking problem).
 
     #   IF ROBOT'S PF.NOT_CONVERGED: LOOK AROUND, IMPROVE ESTIMATE
         (est_x, est_y, est_h, confident) = pf.update(odom, markers)
@@ -204,109 +200,6 @@ async def localize(robot: cozmo.robot.Robot):
 
             action = await robot.drive_wheels(30, -8, duration=None)
     return marker_locations
-
-async def run(robot: cozmo.robot.Robot):
-
-    global flag_odom_init, last_pose
-    global grid, gui, pf
-
-    # start streaming
-    robot.camera.image_stream_enabled = True
-    robot.camera.color_image_enabled = False
-    robot.camera.enable_auto_exposure()
-
-    await robot.set_head_angle(cozmo.util.degrees(0)).wait_for_completed()
-
-    classifier = imageML.load_classifier()
-    marker_locations = {}
-    marker_ids = grid.markers
-
-    # Obtain the camera intrinsics matrix
-    fx, fy = robot.camera.config.focal_length.x_y
-    cx, cy = robot.camera.config.center.x_y
-    camera_settings = np.array([
-        [fx,  0, cx],
-        [ 0, fy, cy],
-        [ 0,  0,  1]
-    ], dtype=np.float)
-    start_pathfinding = False
-    tries = 0
-
-    s_start = time.time()
-
-    while True:
-        s_elapsed = time.time()
-        print(s_elapsed - s_start)
-    #   • Obtain odometry information
-        odom = compute_odometry(robot.pose)
-        last_pose = robot.pose
-    #   • Obtain list of currently seen markers and their poses
-        markers, camera_image = await marker_processing(robot, camera_settings, show_diagnostic_image=True)
-        print(markers)
-        #predicted_image = imageML.detectImage(robot, classifier)
-        #marker_locations[predicted_image] = <actual location of marker>
-    #   • Determine the robot’s actions based on the current state of the localization system. For
-    #     example, you may want the robot to actively look around if the localization has not
-    #     converged (i.e. global localization problem), and drive to the goal if localization has
-    #     converged (i.e. position tracking problem).
-
-    #   IF ROBOT'S PF.NOT_CONVERGED: LOOK AROUND, IMPROVE ESTIMATE
-        (est_x, est_y, est_h, confident) = pf.update(odom, markers)
-        #est_x, est_y, est_h = (0,0,0)
-        #confident = True
-        goal_x, goal_y, goal_h = goal
-        angle_to_goal = math.degrees(math.atan2(goal_y - est_y, goal_x - est_x))
-
-        gui.show_particles(pf.particles)
-        gui.show_camera_image(camera_image)
-        gui.show_mean(est_x, est_y, est_h, confident)
-
-        gui.updated.set()
-
-        goal_found = grid_distance(est_x, est_y, goal_x, goal_y) <= 2.5
-
-        # kidnapping condition
-        if robot.is_picked_up:
-            print('unhappy')
-            start_pathfinding = False
-            pf = ParticleFilter(grid)
-            action = robot.play_anim_trigger(cozmo.anim.Triggers.CodeLabUnhappy, loop_count=1)
-            await action.wait_for_completed()
-
-        #current_behavior = robot.start_behavior(cozmo.behavior._BehaviorType(name='LookAroundInPlace', id=5))
-        if not confident and not start_pathfinding:
-            action = await robot.drive_wheels(30, -8, duration=None)
-            #await robot.turn_in_place(angle=cozmo.util.degrees(360 + 90), speed=cozmo.util.degrees(40)).wait_for_completed()
-            #robot.drive_straight(distance=cozmo.util.distance_inches(3), speed=cozmo.util.speed_mmps(100)).wait_for_completed()
-        #while confident and grid_distance(est_x, est_y, goal_x, goal_y) > 3:
-        if (confident or start_pathfinding):
-            robot.stop_all_motors()
-
-            action = robot.turn_in_place(angle=cozmo.util.degrees(diff_heading_deg(angle_to_goal, est_h)), speed=cozmo.util.degrees(40))
-            await action.wait_for_completed()
-
-            # find distance to grid_distance
-            #print('driving: ' + str(grid_distance(est_x, est_y, goal_x, goal_y)))
-            dist = cozmo.util.distance_inches(2)
-            action = robot.drive_straight(distance=dist, speed=cozmo.util.speed_mmps(100))
-            await action.wait_for_completed()
-
-            if tries < 4:
-                start_pathfinding = True
-                tries += 1
-            else:
-                start_pathfinding = False
-                tries = 0
-
-            print('Conf: ' + str(confident))
-            print('Goal Found: ' + str(goal_found))
-            if goal_found:
-                action = robot.turn_in_place(angle=cozmo.util.degrees(- angle_to_goal))
-                await action.wait_for_completed()
-            # Robot does victory dance
-                action = robot.play_anim_trigger(cozmo.anim.Triggers.CodeLabVictory, loop_count=1)
-                await action.wait_for_completed()
-                break
 
 async def run(robot: cozmo.robot.Robot):
     marker_locations = await localize(robot)

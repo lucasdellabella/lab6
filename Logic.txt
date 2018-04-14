@@ -33,17 +33,5 @@ Step 2:
             and then use the found position
 
 
-
-
-        once we've created this mapping we need to RRT
-
 Step 3:
   Use RRT to plan path to Cube, and plan path to goal_pos as defined by the pdf
-
-Step 3:
-Particle filter
-Pick a corner that has a cube
-Drive to cube
-Pick up
-Drive to cube destination
-Drop off
