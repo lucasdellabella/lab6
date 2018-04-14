@@ -50,7 +50,7 @@ def trainModel(robot):
     classifier = ImageClassifier()
 
     (train_raw, train_labels) = classifier.load_data_from_folder('./photos/')#load_sorted_data('./photos')
-    (test_raw, test_labels) = classifier.load_data_from_folder('./train/')
+    (test_raw, test_labels) = classifier.load_data_from_folder('./test/')
 
     # convert images into features
     train_data = np.array(classifier.extract_image_features(train_raw))
