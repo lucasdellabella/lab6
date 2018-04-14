@@ -15,6 +15,7 @@ import threading
 import time
 import sys
 import asyncio
+import imageML
 from PIL import Image
 
 from markers import detect, annotator
@@ -128,6 +129,56 @@ async def marker_processing(robot, camera_settings, show_diagnostic_image=False)
 
     return marker_list, annotated_image
 
+async def localize(robot: cozmo.robot.Robot):
+    global flag_odom_init, last_pose
+    global grid, gui, pf
+
+    # start streaming
+    robot.camera.image_stream_enabled = True
+    robot.camera.color_image_enabled = False
+    robot.camera.enable_auto_exposure()
+    await robot.set_head_angle(cozmo.util.degrees(0)).wait_for_completed()
+    classifier = imageML.load_classifier()
+    marker_locations = {}
+    marker_ids = grid.markers
+
+    # Obtain the camera intrinsics matrix
+    fx, fy = robot.camera.config.focal_length.x_y
+    cx, cy = robot.camera.config.center.x_y
+    camera_settings = np.array([
+        [fx,  0, cx],
+        [ 0, fy, cy],
+        [ 0,  0,  1]
+    ], dtype=np.float)
+
+    while(True):
+        odom = compute_odometry(robot.pose)
+        last_pose = robot.pose
+    #   • Obtain list of currently seen markers and their poses
+        markers, camera_image = await marker_processing(robot, camera_settings, show_diagnostic_image=True)
+        print(markers)
+        #predicted_image = imageML.detectImage(robot, classifier)
+        #marker_locations[predicted_image] = <actual location of marker>
+    #   • Determine the robot’s actions based on the current state of the localization system. For
+    #     example, you may want the robot to actively look around if the localization has not
+    #     converged (i.e. global localization problem), and drive to the goal if localization has
+    #     converged (i.e. position tracking problem).
+
+    #   IF ROBOT'S PF.NOT_CONVERGED: LOOK AROUND, IMPROVE ESTIMATE
+        (est_x, est_y, est_h, confident) = pf.update(odom, markers)
+        print((est_x, est_y, est_h))
+
+        # UPDATE GUI
+        gui.show_particles(pf.particles)
+        gui.show_camera_image(camera_image)
+        gui.show_mean(est_x, est_y, est_h, confident)
+        gui.updated.set()
+
+        if not confident:
+            action = await robot.drive_wheels(30, -8, duration=None)
+        else:
+            robot.stop_all_motors()
+            return (est_x, est_y, est_h)
 
 async def run(robot: cozmo.robot.Robot):
 
@@ -139,6 +190,9 @@ async def run(robot: cozmo.robot.Robot):
     robot.camera.color_image_enabled = False
     robot.camera.enable_auto_exposure()
     await robot.set_head_angle(cozmo.util.degrees(0)).wait_for_completed()
+    classifier = imageML.load_classifier()
+    marker_locations = {}
+    marker_ids = grid.markers
 
     # Obtain the camera intrinsics matrix
     fx, fy = robot.camera.config.focal_length.x_y
@@ -161,6 +215,9 @@ async def run(robot: cozmo.robot.Robot):
         last_pose = robot.pose
     #   • Obtain list of currently seen markers and their poses
         markers, camera_image = await marker_processing(robot, camera_settings, show_diagnostic_image=True)
+        print(markers)
+        #predicted_image = imageML.detectImage(robot, classifier)
+        #marker_locations[predicted_image] = <actual location of marker>
     #   • Determine the robot’s actions based on the current state of the localization system. For
     #     example, you may want the robot to actively look around if the localization has not
     #     converged (i.e. global localization problem), and drive to the goal if localization has
@@ -224,6 +281,9 @@ async def run(robot: cozmo.robot.Robot):
                 await action.wait_for_completed()
                 break
 
+async def run(robot: cozmo.robot.Robot):
+    position = await localize(robot)
+    print('FINAL: ' + str(position))
 
 class CozmoThread(threading.Thread):
 

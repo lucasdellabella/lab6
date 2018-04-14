@@ -38,6 +38,9 @@ def run(sdk_conn):
         classifier = trainModel(robot)
     detectImages(robot, classifier)
 
+def load_classifier():
+    return joblib.load('classifier.pkl')
+
 def find_majority(d):
     dict = defaultdict(lambda: 0)
     for item in d:
@@ -100,6 +103,33 @@ def trainModel(robot):
                 ''')
     joblib.dump(classifier, 'classifier.pkl')
     return classifier
+
+def detectImage(robot, classifier):
+    d = deque()
+    # Start main program
+    raw_image = np.array(robot.world.wait_for(cozmo.world.EvtNewCameraImage).image.raw_image)
+    raw_image = skimage.color.rgb2gray(raw_image)
+    marker = marker_detection.detect_marker(raw_image)
+
+    # Check if a marker was detected
+    if marker['detected']:
+        while(len(d) < 5):
+            # Get the cropped, unwarped image of just the marker
+            if marker['detected']:
+                marker_image = marker['unwarped_image']
+                #marker_image = marker_image.reshape(240, 320, 1)
+                marker_image = np.array(classifier.extract_image_features(np.array([np.array(marker_image)])))
+                # Use the marker image for improved classification, e.g.:
+                # # marker_type = my_classification_function(marker_image)
+                observation = classifier.predict_labels(marker_image)[0]
+                d.append(observation)
+            else:
+                d.append('none')
+            # Start main program
+            raw_image = np.array(robot.world.wait_for(cozmo.world.EvtNewCameraImage).image.raw_image)
+            raw_image = skimage.color.rgb2gray(raw_image)
+            marker = marker_detection.detect_marker(raw_image)
+        return find_majority(d)
 
 def detectImages(robot, classifier):
     d = deque()

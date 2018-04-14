@@ -10,8 +10,22 @@ Step 1:
   DONE: save model
 
 Step 2:
-  2a. run particle filter, see if it works at all
+  DONE: 2a. run particle filter, see if it works at all
   2b. Create map of {marker: marker_name}
+
+    i. get unique IDs of each marker from grid.markers
+    ii. localize robot with particle filtering
+    iii. continue driving in circle, detect markers and decide which of the markers the detected marker is
+          -- Maybe take the global position of each of the markers, and find the nearest neighbor to the observed_marker
+    iv. create mapping of marker_name: absolute_grid_location to use as 'goal'
+    v. if len(marker_locations) == 6: move to planning section
+       else: goto step iii.
+
+
+        once we've created this mapping we need to RRT
+
+Step 3:
+  Use RRT to plan path to Cube, and plan path to goal_pos as defined by the pdf
 
 Step 3:
 Particle filter
