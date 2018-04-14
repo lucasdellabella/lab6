@@ -22,7 +22,7 @@ import pdb
 import pickle
 
 def run(sdk_conn):
-    
+
     robot = sdk_conn.wait_for_robot()
     robot.camera.image_stream_enabled = True
     robot.camera.color_image_enabled = False
@@ -31,56 +31,22 @@ def run(sdk_conn):
     robot.set_head_angle(cozmo.util.degrees(0)).wait_for_completed()
     robot.set_lift_height(height=0, duration=0.5).wait_for_completed()
 
-    idleState(robot)
+    classifier = trainModel(robot)
+    detectImages(robot, classifier)
 
-def orderState(robot):
-    robot.drive_wheels(240, 125.6, duration=5.5)
+def find_majority(d):
+    dict = defaultdict(lambda: 0)
+    for item in d:
+        dict[item] += 1
+    curr_max = 0
+    max_item = ""
+    for item in d:
+        if dict[item] > curr_max:
+            curr_max = dict[item]
+            max_item = item
+    return max_item
 
-def inspectionState(robot):
-    def turn():
-        turn_in_place_action = robot.turn_in_place(angle=cozmo.util.Angle(degrees=90)).wait_for_completed()  # ? in parallel
-
-    def drive_side(robot, task):
-        set_lift_action = robot.set_lift_height(height=task, duration=2.5, in_parallel=True)
-        drive_straight_action = robot.drive_straight(distance=cozmo.util.Distance(distance_mm=200), speed=cozmo.util.Speed(80), in_parallel=True).wait_for_completed()
-
-    LOWER = 0
-    RAISE = 1
-    for i in range(2):
-        drive_side(robot, RAISE)
-        turn()
-        drive_side(robot, LOWER)
-        turn()
-
-def droneState(robot):
-    def pickup_putdown(evt, image_box=None, obj=None, pose=None, updated=None):
-        print("TESTING")
-        print(obj)
-        robot.pickup_object(obj).wait_for_completed()
-        robot.drive_straight(distance=cozmo.util.Distance(distance_mm=100),
-                             speed=cozmo.util.Speed(80)).wait_for_completed()
-        robot.place_object_on_ground_here(obj).wait_for_completed()
-        robot.drive_straight(distance=cozmo.util.Distance(distance_mm=-100),
-                             speed=cozmo.util.Speed(80)).wait_for_completed()
-
-    look_around = robot.start_behavior(cozmo.behavior._BehaviorType(name='LookAroundInPlace', id=5))
-    objectObservedEvt = robot.wait_for(cozmo.objects.EvtObjectObserved, timeout=30)
-    look_around.stop()
-    pickup_putdown(objectObservedEvt, obj=objectObservedEvt.obj)
-
-def idleState(robot):
-    def find_majority(d):
-        dict = defaultdict(lambda: 0)
-        for item in d:
-            dict[item] += 1
-        curr_max = 0
-        max_item = ""
-        for item in d:
-            if dict[item] > curr_max:
-                curr_max = dict[item]
-                max_item = item
-        return max_item
-
+def trainModel(robot):
     classifier = ImageClassifier()
 
     (train_raw, train_labels) = classifier.load_data_from_folder('./photos/')#load_sorted_data('./photos')
@@ -128,10 +94,10 @@ def idleState(robot):
         ||
         ||
                 ''')
+    return classifier
 
-
+def detectImages(robot, classifier):
     d = deque()
-
     # Start main program
     while(True):
         # have cozmo understand images
@@ -160,9 +126,6 @@ def idleState(robot):
                     print(d)
                     robot.say_text(majority).wait_for_completed()
                     d = deque()
-                if majority == 'drone': droneState(robot)
-                if majority == 'inspection': inspectionState(robot)
-                if majority == 'order': orderState(robot)
         else:
             d.append('none')
             if len(d) >= 6:
