@@ -156,17 +156,13 @@ async def CozmoPlanning(robot: cozmo.robot.Robot):
 
     goal_center = None
     cmap.set_start(LOCAL_ORIGIN)
-    (update_cmap, goal_center) = await detect_cube_and_update_cmap(robot, observed_cubes, LOCAL_ORIGIN)
     center = Node((cmap.width / 2, cmap.height / 2))
     #TODO: Make RRT work for lab6
     #  Add center obstacle
     await add_center_obstacle(robot, LOCAL_ORIGIN)
-    # look, if cube seen:
-    #(update_cmap, goal_center) = await detect_cube_and_update_cmap(robot, observed_cubes, LOCAL_ORIGIN)
-    if goal_center:
-        pass
+    #  set goal in front of cube
+    (update_cmap, goal_center) = await detect_cube_and_add_goal(robot, observed_cubes, LOCAL_ORIGIN)
 
-    #   set goal in front of cube
     # RRT to cube
     # .pickup() cube
     # set goal to target_marker
