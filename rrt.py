@@ -161,15 +161,15 @@ async def CozmoPlanning(robot: cozmo.robot.Robot):
     #  Add center obstacle
     await add_center_obstacle(robot, LOCAL_ORIGIN)
     #  set goal in front of cube
-    (update_cmap, goal_center) = await detect_cube_and_add_goal(robot, observed_cubes, LOCAL_ORIGIN)
-
+    cozmo_object = await detect_cube_and_add_goal(robot, observed_cubes, LOCAL_ORIGIN)
     # RRT to cube
+    await drive_to_goal(cmap, robot, observed_cubes)
+    print('ES MUDDAFUKNGETTITTT')
     # .pickup() cube
+    action = await robot.pickup_object(cozmo_object).wait_for_completed()
     # set goal to target_marker
     # RRT to target_marker
     # .putdown() cube
-    await drive_to_goal(cmap, robot, observed_cubes)
-    print('ES MUDDAFUKNGETTITTT')
 
 
 async def drive_to_goal(cmap, robot, observed_cubes):
@@ -253,8 +253,6 @@ async def detect_cube_and_add_goal(robot, marked, cozmo_pos):
     cozmo_padding = 100.
 
     # Flags
-    update_cmap = False
-    goal_center = None
 
     # Time for the robot to detect visible cubes
     time.sleep(1)
@@ -284,12 +282,10 @@ async def detect_cube_and_add_goal(robot, marked, cozmo_pos):
         else:
             cmap.clear_goals()
             cmap.add_goal(goal_pos)
-            goal_center = object_pos
 
         marked[obj.object_id] = obj
-        update_cmap = True
 
-    return update_cmap, goal_center
+        return obj
 
 async def detect_cube_and_update_cmap(robot, marked, cozmo_pos):
     """Helper function used to detect obstacle cubes and the goal cube.
