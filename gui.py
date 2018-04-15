@@ -233,7 +233,6 @@ class GUIWindow():
         # Indicate that main loop has finished
         self.running.clear()
 
-
 class Visualizer():
     """Visualizer to display status of an associated CozMap instance
     """
@@ -351,10 +350,12 @@ class Visualizer():
     def draw_solution(self):
         """"Redraw one solution from start to goal
         """
-        self.canvas.delete('solved')
         path = self.cmap.get_smooth_path()
         for p in range(len(path)-1):
-            self.draw_edge(path[p], path[p+1], color='#DDDD00', width=5, tags='solved')
+            self.draw_edge(path[p], path[p+1], color='#DDDD00', width=5, tags='smoothed')
+
+    def erase_solution(self):
+        self.canvas.delete('smoothed')
 
     def update(self, *args):
         """Redraw any updated cmap elements
@@ -372,9 +373,11 @@ class Visualizer():
             self.draw_obstacles()
         if 'nodes' in self.cmap.changes:
             self.draw_nodes()
+            self.erase_solution()
         if 'node_paths' in self.cmap.changes:
             self.draw_node_path()
-        if 'solved' in self.cmap.changes:
+            self.erase_solution()
+        if 'smoothed' in self.cmap.changes:
             self.draw_solution()
 
         self.cmap.changes = []
@@ -418,3 +421,4 @@ class Visualizer():
 
         # Indicate that main loop has finished
         self.running.clear()
+
