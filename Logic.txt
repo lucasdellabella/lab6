@@ -35,3 +35,12 @@ Step 2:
 
 Step 3:
   Use RRT to plan path to Cube, and plan path to goal_pos as defined by the pdf
+
+  Add center obstacle
+  look, if cube seen:
+    set goal in front of cube
+  RRT to cube
+  .pickup() cube
+  set goal to target_marker
+  RRT to target_marker
+  .putdown() cube

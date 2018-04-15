@@ -18,6 +18,21 @@ MAX_NODES = 20000
 MM_PER_INCH = 25.4
 LOCAL_ORIGIN = Node((6 * MM_PER_INCH, 10 * MM_PER_INCH))
 
+def step_ninety_pct(node0, node1):
+    ########################################################################
+    # TODO: please enter your code below.
+    # 1. If distance between two nodes is less than limit, return node1
+    # 2. Otherwise, return a node in the direction from node0 to node1 whose
+    #    distance to node0 is limit. Recall that each iteration we can move
+    #    limit units at most
+    # 3. Hint: please consider using np.arctan2 function to get vector angle
+    # 4. Note: remember always return a Node object
+    y = (node1.y - node0.y) * 0.9
+    x = (node1.x - node0.x) * 0.9
+    return Node((node0.x + x, node0.y + y))
+
+    ############################################################################
+
 def step_from_to(node0, node1, limit=75):
     ########################################################################
     # TODO: please enter your code below.
@@ -142,23 +157,22 @@ async def CozmoPlanning(robot: cozmo.robot.Robot):
     goal_center = None
     cmap.set_start(LOCAL_ORIGIN)
     (update_cmap, goal_center) = await detect_cube_and_update_cmap(robot, observed_cubes, LOCAL_ORIGIN)
+    #center = Node((cmap.width / 2, cmap.height / 2))
+    #TODO: Make RRT work for lab6
+    #  Add center obstacle
+    #cmap.add_obstacle(center)
+    # look, if cube seen:
+    #(update_cmap, goal_center) = await detect_cube_and_update_cmap(robot, observed_cubes, LOCAL_ORIGIN)
+    if goal_center:
+        pass
 
-    at_goal = False
-    while not at_goal:
-        if not goal_center:
-            MIDDLE =  Node((cmap.width / 2, cmap.height / 2))
-            cmap.add_goal(MIDDLE)
-            await drive_to_goal(cmap, robot, observed_cubes)
-            cmap.clear_goals()
-            cmap.reset()
-            cmap.set_start(MIDDLE)
-            # TODO: drive in a circle until you see something
-            while not goal_center:
-                update_cmap, goal_center = await detect_cube_and_update_cmap(robot, observed_cubes, MIDDLE)
-                await robot.turn_in_place(angle=cozmo.util.degrees(45)).wait_for_completed()
-        else:
-            await drive_to_goal(cmap, robot, observed_cubes)
-            at_goal = True
+    #   set goal in front of cube
+    # RRT to cube
+    # .pickup() cube
+    # set goal to target_marker
+    # RRT to target_marker
+    # .putdown() cube
+    await drive_to_goal(cmap, robot, observed_cubes)
     print('ES MUDDAFUKNGETTITTT')
 
 
