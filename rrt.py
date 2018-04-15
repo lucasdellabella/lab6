@@ -168,14 +168,22 @@ async def CozmoPlanning(robot: cozmo.robot.Robot):
     # .pickup() cube
     action = await robot.pickup_object(cozmo_object).wait_for_completed()
     # set goal to target_marker
-    # RRT to target_marker
+    #RRT to target_marker
+    cmap.set_start(get_global_node(robot.pose.rotation.angle_z.radians, LOCAL_ORIGIN, robot_as_node(robot)))
+    cmap.clear_goals()
+    hard_coded_target = Node((3 * MM_PER_INCH, 9 * MM_PER_INCH))
+    cmap.add_goal(hard_coded_target)
+    await drive_to_goal(cmap, robot, observed_cubes)
     # .putdown() cube
+    action = await robot.place_object_on_ground_here(cozmo_object).wait_for_completed()
 
 
 async def drive_to_goal(cmap, robot, observed_cubes):
     found_goal = False
     while not found_goal:
+        print(cmap.get_start().coord)
         cmap.reset()
+        print(cmap.get_start().coord)
         RRT(cmap, cmap.get_start())
         # 3. follow RRT path to target_cube face
         smooth_path = cmap.get_smooth_path()
@@ -224,7 +232,7 @@ async def add_center_obstacle(robot, cozmo_pos):
     global cmap
 
     # Padding of objects and the robot for C-Space
-    cube_padding = 60.
+    cube_padding = 30.
     cozmo_padding = 100.
 
     # Flags

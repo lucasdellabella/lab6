@@ -44,3 +44,8 @@ Step 3:
   set goal to target_marker
   RRT to target_marker
   .putdown() cube
+
+  CURRENT WORK:
+    Setting cmap's start position and goal positions for the dropoff part of RRT
+    - having problems getting cozmo to pick up cube
+    - seems like sometimes start position is getting set, sometimes not

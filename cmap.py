@@ -235,7 +235,7 @@ class CozMap:
             return random.randint(0, len(path) - 1)
 
         path = self.get_path()
-        for _ in range(5):
+        for _ in range(25):
             ## Get two nodes along the path
             i, j = -1, -1
             while i >= j:
