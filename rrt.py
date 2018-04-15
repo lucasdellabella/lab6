@@ -215,7 +215,7 @@ def get_global_node(local_angle, local_origin, node):
     axis_aligned_x = math.cos(local_angle) * node.x + -1 * math.sin(local_angle) * node.y
     axis_aligned_y = math.sin(local_angle) * node.x + math.cos(local_angle) * node.y
     # use local angle to rotate
-    new_node = Node((axis_aligned_x + local_origin.x, node.y + local_origin.y))
+    new_node = Node((axis_aligned_x + local_origin.x, axis_aligned_y + local_origin.y))
     return new_node
 
 
