@@ -153,6 +153,13 @@ async def localize(robot: cozmo.robot.Robot):
 
     classifier = imageML.load_classifier()
     marker_locations = {}
+    abs_marker_locations = { \
+     (10, 0, 'U'): 'plane', \
+     (18, 0, 'U'): 'place', \
+     (25, 6, 'L'): 'inspection', \
+     (0, 9, 'R'): 'drone', \
+     (25, 12, 'L'): 'truck', \
+     (14, 17, 'D'): 'order'}
 
     while(len(marker_locations) < 6):
         odom = compute_odometry(robot.pose)
@@ -197,6 +204,7 @@ async def localize(robot: cozmo.robot.Robot):
                 #if marker_name not in {'none', 'None'}:
                 marker_locations[marker_name] = best_marker_pos
                 print(marker_locations)
+                print('MarkerLoc Correct: ', str(abs_marker_locations[marker_locations[marker_name]] == marker_name))
 
             action = await robot.drive_wheels(30, -8, duration=None)
     return marker_locations

@@ -1,9 +1,11 @@
 from setting import *
+import numpy as np
 import random
 random.seed(RANDOM_SEED)
 import math
 
 """ Some math utilies, feel free to use any of these!!!
+    (For particle filtering stuff)
 """
 
 # euclian distance in grid world
@@ -66,7 +68,6 @@ def compute_mean_pose(particles, confident_dist=1):
 
     return m_x, m_y, m_h, m_count > len(particles) * 0.95
 
-
 # utils to add gaussian noise
 
 def add_gaussian_noise(data, sigma):
@@ -81,3 +82,80 @@ def add_marker_measurement_noise(marker_measured, trans_sigma, rot_sigma):
     return (add_gaussian_noise(marker_measured[0], trans_sigma), \
         add_gaussian_noise(marker_measured[1], trans_sigma), \
         add_gaussian_noise(marker_measured[2], rot_sigma))
+
+
+"""
+Utils for RRT stuff
+"""
+
+class Node(object):
+    """Class representing a node in RRT
+    """
+
+    def __init__(self, coord, parent=None):
+        super(Node, self).__init__()
+        self.coord = coord
+        self.parent = parent
+
+    @property
+    def x(self):
+        return self.coord[0]
+
+    @property
+    def y(self):
+        return self.coord[1]
+
+    def __getitem__(self, key):
+        assert (key == 0 or key == 1)
+        return self.coord[key]
+
+
+def get_dist(p, q):
+    return np.sqrt((p.x - q.x) ** 2 + (p.y - q.y) ** 2)
+
+
+################################################################################
+######## helper function for line segment intersection check   #################
+# credit:http://www.geeksforgeeks.org/check-if-two-given-line-segments-intersect
+################################################################################
+def is_zero(val):
+    return abs(val) < 1e-9
+
+
+def is_on_segment(p, q, r):
+    if (q.x <= max(p.x, r.x) and q.x >= min(p.x, r.x) and
+                q.y <= max(p.y, r.y) and q.y >= min(p.y, r.y)):
+        return True
+    return False
+
+
+def get_orientation(p, q, r):
+    val = (q.y - p.y) * (r.x - q.x) - (q.x - p.x) * (r.y - q.y)
+    if is_zero(val):
+        # colinear
+        return 0
+    elif val > 0:
+        # clockwise
+        return 1
+    else:
+        # counter-clockwise
+        return 2
+
+
+def is_intersect(p1, q1, p2, q2):
+    o1 = get_orientation(p1, q1, p2)
+    o2 = get_orientation(p1, q1, q2)
+    o3 = get_orientation(p2, q2, p1)
+    o4 = get_orientation(p2, q2, q1)
+
+    if (o1 != o2 and o3 != o4):
+        return True
+    if (is_zero(o1) and is_on_segment(p1, p2, q1)):
+        return True
+    if (is_zero(o2) and is_on_segment(p1, q2, q1)):
+        return True
+    if (is_zero(o3) and is_on_segment(p2, p1, q2)):
+        return True
+    if (is_zero(o4) and is_on_segment(p2, q1, q2)):
+        return True
+    return False
